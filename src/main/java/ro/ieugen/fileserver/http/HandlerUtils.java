@@ -1,4 +1,4 @@
-package ro.ieugen.http.fileserver;
+package ro.ieugen.fileserver.http;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFutureListener;
