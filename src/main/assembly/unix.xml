@@ -28,6 +28,7 @@
             <fileMode>0755</fileMode>
             <includes>
                 <include>*.sh</include>
+                <include>index-template.html</include>
             </includes>
         </fileSet>
     </fileSets>

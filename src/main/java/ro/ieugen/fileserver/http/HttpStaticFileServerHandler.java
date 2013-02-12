@@ -128,6 +128,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
             sendError(ctx, NOT_FOUND);
             return;
         }
+
         if (!file.isFile()) {
             sendError(ctx, FORBIDDEN);
             return;

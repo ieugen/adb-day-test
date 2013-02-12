@@ -2,9 +2,14 @@ package ro.ieugen.fileserver.config;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Throwables;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.io.File;
+import java.io.IOException;
 
 public class DefaultServerConfiguration {
 
@@ -32,6 +37,7 @@ public class DefaultServerConfiguration {
     }
 
     public void setPort(int port) {
+        checkArgument(port > 1, "Port must be a positive integer");
         this.port = port;
     }
 
@@ -39,8 +45,18 @@ public class DefaultServerConfiguration {
         return root;
     }
 
+    public String getCanonicalRoot() {
+        String path;
+        try {
+            path = new File(root).getCanonicalPath();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        return path;
+    }
+
     public void setRoot(String root) {
-        this.root = root;
+        this.root = checkNotNull(root, "Root directory must not be null");
     }
 
     public int getWorkerThreadCount() {
@@ -48,6 +64,7 @@ public class DefaultServerConfiguration {
     }
 
     public void setWorkerThreadCount(int workerThreadCount) {
+        checkArgument(workerThreadCount >= 1, "Minimum two worker threads required");
         this.workerThreadCount = workerThreadCount;
     }
 

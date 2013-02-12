@@ -1,0 +1,5 @@
+We will use Mustache to render an Iterable:
+
+{{#items}}
+    Item has id: {{id}}
+{{/items}}

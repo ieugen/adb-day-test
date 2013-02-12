@@ -25,10 +25,11 @@ public class Main {
     public static void main(String[] args) throws IOException {
         String fileName = System.getProperty(SERVER_CONFIG_SYSTEM_PROPERTY, "http-server-conf.yml");
         LOG.info("Configuration file is {} from system property {}", fileName, SERVER_CONFIG_SYSTEM_PROPERTY);
+
         DefaultServerConfiguration conf = readConfiguration(fileName);
+        LOG.info("Server configuration is {}", conf);
         HttpStaticFileServer server = new HttpStaticFileServer(conf);
         server.run();
-        // TODO: signal server shutdown and properly close the server
     }
 
     public static DefaultServerConfiguration readConfiguration(String fileName) throws IOException {
