@@ -1,13 +1,11 @@
 package ro.ieugen.fileserver;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.List;
 
 public class DirectoryRendererTest {
 
@@ -19,7 +17,7 @@ public class DirectoryRendererTest {
         File file = new File("pom.xml");
         assertTrue(file.isFile());
         try {
-            List<String> listing = directoryRenderer.renderDirectory(file);
+            String result = directoryRenderer.renderDirectory(file);
             fail("A file was supplied instead of directory");
         } catch (Exception e) {
             assertTrue(true);
@@ -30,23 +28,9 @@ public class DirectoryRendererTest {
     public void testListDirectoryWorks() throws Exception {
         File currentWorkingDir = new File(".");
         assertTrue(currentWorkingDir.isDirectory());
-        List<String> listing = directoryRenderer.renderDirectory(currentWorkingDir);
-        System.out.println(listing);
-        boolean pomXmlExists = Iterables.any(listing, new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return input.endsWith("pom.xml");
-            }
-        });
-        assertTrue(pomXmlExists);
-
-        boolean srcFolderExists = Iterables.any(listing, new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return input.endsWith("src");
-            }
-        });
-        assertTrue(srcFolderExists);
-
+        String result = directoryRenderer.renderDirectory(currentWorkingDir);
+        System.out.println(result);
+        assertThat(result).contains("<html>")
+                .contains("src/").contains("pom.xml");
     }
 }

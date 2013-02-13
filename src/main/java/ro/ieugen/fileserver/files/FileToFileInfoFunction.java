@@ -19,8 +19,9 @@ public class FileToFileInfoFunction<T extends File, U extends FileInfo> implemen
     private final URI rootUri;
 
     public FileToFileInfoFunction(URI rootUri) {
-        this.rootUri = checkNotNull(rootUri, "Can't relativize file path,base Url is null");
-        LOG.info("Using {} as root URI", this.rootUri.getPath());
+        checkNotNull(rootUri, "Can't relativize file path,base Url is null");
+        this.rootUri = rootUri.normalize();
+        LOG.debug("Using {} as root URI", this.rootUri.getPath());
     }
 
     private static String FILE_TYPE = "File";
