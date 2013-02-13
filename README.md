@@ -1,4 +1,4 @@
-Http Static File server
+Http Static File server [![Build Status](https://buildhive.cloudbees.com/job/ieugen/job/adb-day-test/badge/icon)](https://buildhive.cloudbees.com/job/ieugen/job/adb-day-test/)
 =======================
 
 A simple HTTP file server for static files written in Java. Based on HTTP file server example from Netty project.
