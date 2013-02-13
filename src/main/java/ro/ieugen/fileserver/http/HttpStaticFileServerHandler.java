@@ -50,6 +50,9 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ro.ieugen.fileserver.DirectoryRenderer;
+import ro.ieugen.fileserver.MustacheTemplate;
+import ro.ieugen.fileserver.config.DefaultServerConfiguration;
 import static ro.ieugen.fileserver.http.HandlerUtils.sendError;
 
 import javax.activation.MimetypesFileTypeMap;
@@ -57,6 +60,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -118,10 +122,13 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
     public static final int HTTP_CACHE_SECONDS = 60;
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpStaticFileServer.class);
-    private final String rootUri;
+    private DirectoryRenderer directoryRenderer;
+    private final URI rootUri;
 
-    public HttpStaticFileServerHandler(String rootUri) {
-        this.rootUri = checkNotNull(rootUri, "Root directory is null");
+    public HttpStaticFileServerHandler(DefaultServerConfiguration serverConfiguration) {
+        checkNotNull(serverConfiguration, "Root directory is null");
+        this.rootUri = serverConfiguration.getCanonicalRoot();
+        directoryRenderer = new DirectoryRenderer(rootUri, new MustacheTemplate(serverConfiguration.getTemplate()));
     }
 
     @Override
@@ -138,6 +145,13 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
         File file = new File(path);
         if (file.isHidden() || !file.exists()) {
             sendError(ctx, NOT_FOUND);
+            return;
+        }
+
+        if (file.isDirectory()) {
+            //fix this
+            Object result = directoryRenderer.renderDirectory(file);
+            // TODO: create HTTP Response from html content and send!
             return;
         }
 
@@ -237,9 +251,9 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
                 throw new Error();
             }
         }
-        String normalizeRelativedPath = FilenameUtils.normalize(uri);
+        String normalizedRelativePath = FilenameUtils.normalize(uri);
         // Convert to absolute path.
-        return new File(rootUri, normalizeRelativedPath).getAbsolutePath();
+        return new File(new File(rootUri), normalizedRelativePath).getAbsolutePath();
     }
 
     /**

@@ -9,7 +9,7 @@ import java.io.File;
 
 public class FileToFileInfoPredicateTest {
 
-    private FileToFileInfoFunction function = new FileToFileInfoFunction(new File("src/"));
+    private FileToFileInfoFunction function = new FileToFileInfoFunction(new File("src/").toURI());
 
     @Test
     public void testRelativizePathForDirectory() throws Exception {

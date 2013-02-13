@@ -46,12 +46,12 @@ public class HttpFileServerTest {
 
     @Test
     public void testFileDownload() throws Exception {
-        HttpUriRequest getFileRequest = new HttpGet(pathToUri("pom.xml"));
+        HttpUriRequest getFileRequest = new HttpGet(pathToUri("rfc2616.txt"));
         HttpResponse response = client.execute(getFileRequest);
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
         String fileContent = CharStreams.toString(new InputStreamReader(response.getEntity().getContent()));
-        assertThat(fileContent).contains("netty")
-                .contains("ro.ieugen.day");
+        assertThat(fileContent).contains("Request for Comments: 2616")
+                .contains("R. Fielding");
 
         LOG.info(response.toString());
     }

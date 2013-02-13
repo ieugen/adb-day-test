@@ -44,7 +44,7 @@ public class HttpStaticFileServerPipelineFactory implements ChannelPipelineFacto
 
         pipeline.addLast("checkRequestMethod", new CheckRequestMethodHandler());
 
-        pipeline.addLast("handler", new HttpStaticFileServerHandler(defaultServerConfiguration.getCanonicalRoot()));
+        pipeline.addLast("handler", new HttpStaticFileServerHandler(defaultServerConfiguration));
         return pipeline;
     }
 }

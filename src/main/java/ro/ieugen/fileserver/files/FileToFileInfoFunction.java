@@ -13,13 +13,13 @@ import java.net.URI;
 /**
  * Transforms a {@link java.io.File File} into a {@link ro.ieugen.fileserver.files.FileInfo FileInfo} for rendering.
  */
-public class FileToFileInfoFunction implements Function<File, FileInfo> {
+public class FileToFileInfoFunction<T extends File, U extends FileInfo> implements Function<File, FileInfo> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileToFileInfoFunction.class);
     private final URI rootUri;
 
-    public FileToFileInfoFunction(File rootUri) {
-        this.rootUri = checkNotNull(rootUri, "Can't relativize file path,base Url is null").toURI();
+    public FileToFileInfoFunction(URI rootUri) {
+        this.rootUri = checkNotNull(rootUri, "Can't relativize file path,base Url is null");
         LOG.info("Using {} as root URI", this.rootUri.getPath());
     }
 
@@ -59,7 +59,7 @@ public class FileToFileInfoFunction implements Function<File, FileInfo> {
                 throw new IllegalStateException(String.format("File %s is not a child of %s", childPath, rootPath));
             }
         } catch (IOException e) {
-            LOG.info("Exception getting canonical path for {}", child.getAbsolutePath());
+            LOG.debug("Exception getting canonical path for {}", child.getAbsolutePath());
             throw Throwables.propagate(e);
         }
     }

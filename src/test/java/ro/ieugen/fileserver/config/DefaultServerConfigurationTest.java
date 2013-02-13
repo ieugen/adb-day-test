@@ -17,7 +17,7 @@ public class DefaultServerConfigurationTest {
         DefaultServerConfiguration configuration = Main.parseConfiguration(Files.toString(new File(configName), Charsets.UTF_8));
 
         assertThat(configuration.getPort()).isEqualTo(9112);
-        assertThat(configuration.getRoot()).isEqualTo("root/dir1");
+        assertThat(configuration.getRoot()).isEqualTo("src/test/resources/root/dir1");
         assertThat(configuration.getWorkerThreadCount()).isEqualTo(DefaultServerConfiguration.DEFAULT_WORKER_THREAD_COUNT);
     }
 }

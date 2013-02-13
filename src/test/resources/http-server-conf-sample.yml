@@ -1,2 +1,3 @@
 port: 9112
-root: root/dir1
+root: src/test/resources/root/dir1
+template: src/main/resources/index-template.html

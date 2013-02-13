@@ -10,6 +10,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 public class DefaultServerConfiguration {
 
@@ -32,6 +33,11 @@ public class DefaultServerConfiguration {
     @JsonProperty
     private int workerThreadCount = DEFAULT_WORKER_THREAD_COUNT;
 
+    @Valid
+    @NotNull
+    @JsonProperty
+    private String template = "index-template.html";
+
     public int getPort() {
         return port;
     }
@@ -45,14 +51,12 @@ public class DefaultServerConfiguration {
         return root;
     }
 
-    public String getCanonicalRoot() {
-        String path;
+    public URI getCanonicalRoot() {
         try {
-            path = new File(root).getCanonicalPath();
+            return new File(root).getCanonicalFile().toURI();
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
-        return path;
     }
 
     public void setRoot(String root) {
@@ -66,6 +70,14 @@ public class DefaultServerConfiguration {
     public void setWorkerThreadCount(int workerThreadCount) {
         checkArgument(workerThreadCount >= 1, "Minimum two worker threads required");
         this.workerThreadCount = workerThreadCount;
+    }
+
+    public String getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(String template) {
+        this.template = template;
     }
 
     @Override
