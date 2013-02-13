@@ -26,6 +26,7 @@ public class HttpFileServerTest {
     private DefaultServerConfiguration configuration;
     private HttpStaticFileServer server;
     private HttpClient client;
+    private String rfcFilePath = "rfc2616.txt";
 
     @Before
     public void setUp() throws Exception {
@@ -46,7 +47,7 @@ public class HttpFileServerTest {
 
     @Test
     public void testFileDownload() throws Exception {
-        HttpUriRequest getFileRequest = new HttpGet(pathToUri("rfc2616.txt"));
+        HttpUriRequest getFileRequest = new HttpGet(pathToUri(rfcFilePath));
         HttpResponse response = client.execute(getFileRequest);
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
         String fileContent = CharStreams.toString(new InputStreamReader(response.getEntity().getContent()));
@@ -54,6 +55,16 @@ public class HttpFileServerTest {
                 .contains("R. Fielding");
 
         LOG.info(response.toString());
+    }
+
+    @Test
+    public void testDirectoryListing() throws Exception {
+        HttpUriRequest uriRequest = new HttpGet(pathToUri("/"));
+        HttpResponse httpResponse = client.execute(uriRequest);
+        String content = CharStreams.toString(new InputStreamReader(httpResponse.getEntity().getContent()));
+        assertThat(content).contains(rfcFilePath).contains("<html>");
+        assertThat(httpResponse.getStatusLine().getStatusCode()).isEqualTo(200);
+        assertThat(httpResponse.getEntity().getContentType().getValue()).contains("text/html");
     }
 
     private URI pathToUri(String path) {

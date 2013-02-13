@@ -16,7 +16,10 @@
 package ro.ieugen.fileserver.http;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FilenameUtils;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -58,10 +61,12 @@ import static ro.ieugen.fileserver.http.HandlerUtils.sendError;
 import javax.activation.MimetypesFileTypeMap;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -148,19 +153,85 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
             return;
         }
 
-        if (file.isDirectory()) {
-            //fix this
-            Object result = directoryRenderer.renderDirectory(file);
-            // TODO: create HTTP Response from html content and send!
-            return;
-        }
-
-        if (!file.isFile()) {
+        if (!(file.isFile() || file.isDirectory())) {
             sendError(ctx, FORBIDDEN);
             return;
         }
 
-        // Cache Validation
+        Channel ch = e.getChannel();
+        ChannelFuture writeFuture = null;
+
+        if (file.isDirectory()) {
+            ch.write(directoryListingResponse(file));
+        } else {
+            // Cache Validation
+            if (sendRetrieveFromCacheIfNotModified(ctx, request, file)) return;
+            RandomAccessFile raf = openFileOrSendError(ctx, file);
+            if (raf == null) return;
+            // Write the initial line and the header.
+            ch.write(fileDownloadResponse(file, raf));
+
+            // Write the content.
+            if (ch.getPipeline().get(SslHandler.class) != null) {
+                // Cannot use zero-copy with HTTPS.
+                writeFuture = ch.write(new ChunkedFile(raf, 0, raf.length(), 8192));
+            } else {
+                // No encryption - use zero-copy.
+                final FileRegion region =
+                        new DefaultFileRegion(raf.getChannel(), 0, raf.length());
+                writeFuture = ch.write(region);
+                writeFuture.addListener(new ChannelFutureProgressListener() {
+                    public void operationComplete(ChannelFuture future) {
+                        region.releaseExternalResources();
+                    }
+
+                    public void operationProgressed(
+                            ChannelFuture future, long amount, long current, long total) {
+                        LOG.info("{}", String.format("%s: %d / %d (+%d)%n", path, current, total, amount));
+                    }
+                });
+            }
+        }
+
+        // Decide whether to close the connection or not.
+        if (!isKeepAlive(request)) {
+            // Close the connection when the whole content is written out.
+            writeFuture.addListener(ChannelFutureListener.CLOSE);
+        }
+    }
+
+    private HttpResponse fileDownloadResponse(File file, RandomAccessFile raf) throws IOException {
+        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+        long fileLength = raf.length();
+        setContentLength(response, fileLength);
+        setContentTypeHeader(response, file);
+        setDateAndCacheHeaders(response, file);
+        return response;
+    }
+
+    private HttpResponse directoryListingResponse(File file) {
+        final HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+        String directoryListing = directoryRenderer.renderDirectory(file);
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        buffer.writeBytes(directoryListing.getBytes(Charsets.UTF_8));
+        response.setContent(buffer);
+        setContentLength(response, buffer.readableBytes());
+        response.setHeader("Content-type", "text/html");
+        return response;
+    }
+
+    private RandomAccessFile openFileOrSendError(ChannelHandlerContext ctx, File file) {
+        RandomAccessFile raf;
+        try {
+            raf = new RandomAccessFile(file, "r");
+        } catch (FileNotFoundException fnfe) {
+            sendError(ctx, NOT_FOUND);
+            return null;
+        }
+        return raf;
+    }
+
+    private boolean sendRetrieveFromCacheIfNotModified(ChannelHandlerContext ctx, HttpRequest request, File file) throws ParseException {
         String ifModifiedSince = request.getHeader(IF_MODIFIED_SINCE);
         if (ifModifiedSince != null && ifModifiedSince.length() != 0) {
             SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
@@ -172,56 +243,10 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
             long fileLastModifiedSeconds = file.lastModified() / 1000;
             if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds) {
                 sendNotModified(ctx);
-                return;
+                return true;
             }
         }
-
-        RandomAccessFile raf;
-        try {
-            raf = new RandomAccessFile(file, "r");
-        } catch (FileNotFoundException fnfe) {
-            sendError(ctx, NOT_FOUND);
-            return;
-        }
-        long fileLength = raf.length();
-
-        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-        setContentLength(response, fileLength);
-        setContentTypeHeader(response, file);
-        setDateAndCacheHeaders(response, file);
-
-        Channel ch = e.getChannel();
-
-        // Write the initial line and the header.
-        ch.write(response);
-
-        // Write the content.
-        ChannelFuture writeFuture;
-        if (ch.getPipeline().get(SslHandler.class) != null) {
-            // Cannot use zero-copy with HTTPS.
-            writeFuture = ch.write(new ChunkedFile(raf, 0, fileLength, 8192));
-        } else {
-            // No encryption - use zero-copy.
-            final FileRegion region =
-                    new DefaultFileRegion(raf.getChannel(), 0, fileLength);
-            writeFuture = ch.write(region);
-            writeFuture.addListener(new ChannelFutureProgressListener() {
-                public void operationComplete(ChannelFuture future) {
-                    region.releaseExternalResources();
-                }
-
-                public void operationProgressed(
-                        ChannelFuture future, long amount, long current, long total) {
-                    System.out.printf("%s: %d / %d (+%d)%n", path, current, total, amount);
-                }
-            });
-        }
-
-        // Decide whether to close the connection or not.
-        if (!isKeepAlive(request)) {
-            // Close the connection when the whole content is written out.
-            writeFuture.addListener(ChannelFutureListener.CLOSE);
-        }
+        return false;
     }
 
     @Override

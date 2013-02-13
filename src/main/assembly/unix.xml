@@ -29,6 +29,7 @@
             <includes>
                 <include>*.sh</include>
                 <include>index-template.html</include>
+                <include>root/**</include>
             </includes>
         </fileSet>
     </fileSets>

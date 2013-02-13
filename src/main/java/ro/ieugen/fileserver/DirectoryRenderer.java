@@ -6,12 +6,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ro.ieugen.fileserver.files.FileInfo;
 import ro.ieugen.fileserver.files.FileToFileInfoFunction;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,12 +26,13 @@ public class DirectoryRenderer {
     private final URI rootUri;
 
     public DirectoryRenderer(URI rootUri, MustacheTemplate mustacheTemplate) {
-        this.mustacheTemplate = checkNotNull(mustacheTemplate, "MustacheTemplate instance is null");
-        this.rootUri = checkNotNull(rootUri, " Root URI is null");
+        checkNotNull(rootUri, " Root URI is null");
+        this.rootUri = rootUri.normalize();
         this.function = new FileToFileInfoFunction(rootUri);
+        this.mustacheTemplate = checkNotNull(mustacheTemplate, "MustacheTemplate instance is null");
     }
 
-    public List<String> renderDirectory(File directory) {
+    public String renderDirectory(File directory) {
         checkNotNull(directory, "Null value for directory");
         if (!directory.isDirectory()) {
             throw new IllegalStateException("Not a directory.");
@@ -39,23 +40,23 @@ public class DirectoryRenderer {
         try {
             File newPath = directory.getCanonicalFile();
             LOG.info("Listing files for {}", newPath);
-            return Lists.newArrayList(Iterables.transform(Arrays.asList(newPath.listFiles()), function));
+            List<FileInfo> fileInfos = Lists.newArrayList(Iterables.transform(Arrays.asList(newPath.listFiles()), function));
+            return mustacheTemplate.render(new ListingContainer(fileInfos));
         } catch (IOException e) {
             LOG.info("Exception rendering directory {}", directory.getAbsolutePath());
             throw Throwables.propagate(e);
         }
     }
 
-    List<String> getCanonicalPathForFiles(File[] files) {
-        List<String> fileList = new ArrayList<String>();
-        for (File f : files) {
-            try {
-                fileList.add(f.getCanonicalPath());
-            } catch (IOException e) {
-                LOG.debug("Exception getting canonical path for {}", f.getPath());
-            }
-        }
-        return fileList;
-    }
+    static class ListingContainer {
+        private List<FileInfo> files;
 
+        ListingContainer(List<FileInfo> files) {
+            this.files = files;
+        }
+
+        public List<FileInfo> getFiles() {
+            return files;
+        }
+    }
 }
