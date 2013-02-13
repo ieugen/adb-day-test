@@ -15,6 +15,8 @@
  */
 package ro.ieugen.fileserver.http;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.commons.io.FilenameUtils;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -46,6 +48,8 @@ import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import static ro.ieugen.fileserver.http.HandlerUtils.sendError;
 
 import javax.activation.MimetypesFileTypeMap;
@@ -113,11 +117,19 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
     public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
     public static final int HTTP_CACHE_SECONDS = 60;
 
+    private static final Logger LOG = LoggerFactory.getLogger(HttpStaticFileServer.class);
+    private final String rootUri;
+
+    public HttpStaticFileServerHandler(String rootUri) {
+        this.rootUri = checkNotNull(rootUri, "Root directory is null");
+    }
+
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         HttpRequest request = (HttpRequest) e.getMessage();
 
         final String path = sanitizeUri(request.getUri());
+        LOG.info("Requested URI is {}, sanitised path is {}", request.getUri(), path);
         if (path == null) {
             sendError(ctx, FORBIDDEN);
             return;
@@ -214,7 +226,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
         }
     }
 
-    private static String sanitizeUri(String uri) {
+    protected String sanitizeUri(String uri) {
         // Decode the path.
         try {
             uri = URLDecoder.decode(uri, "UTF-8");
@@ -225,20 +237,9 @@ public class HttpStaticFileServerHandler extends SimpleChannelUpstreamHandler {
                 throw new Error();
             }
         }
-
-        // Convert file separators.
-        uri = uri.replace('/', File.separatorChar);
-
-        // Simplistic dumb security check.
-        // You will have to do something serious in the production environment.
-        if (uri.contains(File.separator + '.') ||
-                uri.contains('.' + File.separator) ||
-                uri.startsWith(".") || uri.endsWith(".")) {
-            return null;
-        }
-
+        String normalizeRelativedPath = FilenameUtils.normalize(uri);
         // Convert to absolute path.
-        return System.getProperty("user.dir") + File.separator + uri;
+        return new File(rootUri, normalizeRelativedPath).getAbsolutePath();
     }
 
     /**

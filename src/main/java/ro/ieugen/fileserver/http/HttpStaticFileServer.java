@@ -34,7 +34,7 @@ public class HttpStaticFileServer implements Runnable, Closeable {
                 Executors.newCachedThreadPool(),
                 Executors.newFixedThreadPool(configuration.getWorkerThreadCount())));
 
-        bootstrap.setPipelineFactory(new HttpStaticFileServerPipelineFactory());
+        bootstrap.setPipelineFactory(new HttpStaticFileServerPipelineFactory(configuration));
         LOG.info("Starting HTTP server on port {} with root {}", configuration.getPort(), configuration.getCanonicalRoot());
         Channel serverChannel = bootstrap.bind(new InetSocketAddress(configuration.getPort()));
         allChannels.add(serverChannel);

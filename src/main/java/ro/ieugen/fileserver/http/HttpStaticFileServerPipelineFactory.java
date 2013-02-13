@@ -15,6 +15,7 @@
  */
 package ro.ieugen.fileserver.http;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
@@ -22,8 +23,15 @@ import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
+import ro.ieugen.fileserver.config.DefaultServerConfiguration;
 
 public class HttpStaticFileServerPipelineFactory implements ChannelPipelineFactory {
+
+    private final DefaultServerConfiguration defaultServerConfiguration;
+
+    public HttpStaticFileServerPipelineFactory(DefaultServerConfiguration defaultServerConfiguration) {
+        this.defaultServerConfiguration = checkNotNull(defaultServerConfiguration, "Configuration is null");
+    }
 
     @Override
     public ChannelPipeline getPipeline() throws Exception {
@@ -36,7 +44,7 @@ public class HttpStaticFileServerPipelineFactory implements ChannelPipelineFacto
 
         pipeline.addLast("checkRequestMethod", new CheckRequestMethodHandler());
 
-        pipeline.addLast("handler", new HttpStaticFileServerHandler());
+        pipeline.addLast("handler", new HttpStaticFileServerHandler(defaultServerConfiguration.getCanonicalRoot()));
         return pipeline;
     }
 }

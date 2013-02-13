@@ -19,6 +19,7 @@
         <jackson-annotations.version>2.1.1</jackson-annotations.version>
         <validation-api.version>1.0.0.GA</validation-api.version>
         <mustache.version>0.8.8</mustache.version>
+        <commons-io.version>2.4</commons-io.version>
     </properties>
 
     <prerequisites>
@@ -56,6 +57,11 @@
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
             <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.spullara.mustache.java</groupId>
